@@ -27,12 +27,12 @@ func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message
 		return err
 	}
 
-	cloned := payload.Message{
+	cloned := payload.CloneMessage(payload.Message{
 		Type:      msg.Type,
 		Body:      msg.Body,
 		Headers:   msg.Headers,
 		Timestamp: msg.Timestamp,
-	}
+	})
 	if cloned.Timestamp.IsZero() {
 		cloned.Timestamp = h.clock.Now()
 	}

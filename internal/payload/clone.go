@@ -11,12 +11,13 @@ type Message struct {
 }
 
 // CloneMessage 深拷贝消息，避免与调用方共享 Body/Headers。
+// 仅复制切片头会让底层数组继续别名，调用方事后改写 Body[i] 或
+// Headers[k] 仍会污染在途帧，故 Body 与 Headers 须逐字节/逐项拷贝。
 func CloneMessage(src Message) Message {
-
 	return Message{
 		Type:      src.Type,
-		Body:      src.Body,
-		Headers:   src.Headers,
+		Body:      CloneBytes(src.Body),
+		Headers:   CloneStringMap(src.Headers),
 		Timestamp: src.Timestamp,
 	}
 }
