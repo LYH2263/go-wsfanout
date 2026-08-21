@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>wsfanout 管理页</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>WebSocket 房间扇出</h1>
+    <p class="sub">wsd 管理控制台 · 房间 / 连接 / 试广播</p>
+  </header>
+  <main>
+    <section>
+      <h2>状态</h2>
+      <pre id="stats">加载中…</pre>
+    </section>
+    <section>
+      <h2>房间</h2>
+      <pre id="rooms">[]</pre>
+    </section>
+    <section>
+      <h2>连接</h2>
+      <pre id="conns">[]</pre>
+    </section>
+    <section>
+      <h2>试广播</h2>
+      <label>房间 <input id="room" value="lobby" /></label>
+      <label>类型 <input id="type" value="chat" /></label>
+      <label>内容 <input id="body" value="hello" /></label>
+      <button id="send">发送</button>
+      <p id="msg"></p>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
