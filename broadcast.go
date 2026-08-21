@@ -20,6 +20,11 @@ func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message
 	if err := ctx.Err(); err != nil {
 		return errs.WrapCanceled(err)
 	}
+	// 关停流程会把 h.rooms/h.conns 置 nil；Close 后补发广播必须返回 ErrClosed
+	// 而非命中 nil map 写入导致 panic。先做一次无锁快检，避免无谓的编码开销。
+	if h.closed.Load() {
+		return ErrClosed
+	}
 
 	if err := validate.RoomName(roomName); err != nil {
 		return err
@@ -42,6 +47,11 @@ func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	// 持锁再检：Close 在本路径与编码之间完成关停时，rooms/conns 可能已置 nil，
+	// 此处拦截以避免 ensureRoomLocked 对 nil map 写入而 panic。
+	if h.closed.Load() {
+		return ErrClosed
+	}
 
 	r := h.ensureRoomLocked(roomName)
 	members := r.Members()
