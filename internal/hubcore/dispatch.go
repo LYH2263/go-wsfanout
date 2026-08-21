@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"example.com/wsfanout/internal/conn"
-	"example.com/wsfanout/internal/errs"
 )
 
 // WriteWithWait 在写出前按 ctx 等待背压窗口。
+// ctx 取消时 WaitWrite 会尽快返回，避免拖垮上游超时。
 func WriteWithWait(ctx context.Context, c *conn.Conn, data []byte, wait time.Duration) error {
 
-	if err := c.WaitWrite(context.Background(), wait); err != nil {
+	if err := c.WaitWrite(ctx, wait); err != nil {
 		return err
 	}
 	return c.WriteDirect(ctx, data)

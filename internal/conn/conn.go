@@ -101,11 +101,19 @@ func (c *Conn) WaitEmpty(d time.Duration) error {
 }
 
 // WaitWrite 在 ctx 取消或超时前等待一次写出机会（用于背压协作）。
+// ctx 取消时立即返回 ErrCanceled，而非睡满 d。
 func (c *Conn) WaitWrite(ctx context.Context, d time.Duration) error {
-
-	_ = ctx
-	time.Sleep(d)
-	return nil
+	if err := ctx.Err(); err != nil {
+		return errs.WrapCanceled(err)
+	}
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return errs.WrapCanceled(ctx.Err())
+	case <-t.C:
+		return nil
+	}
 }
 
 // Close 关闭连接与队列，并卸下 Writer。
