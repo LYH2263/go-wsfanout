@@ -28,7 +28,7 @@ func WrapWrite(err error) error {
 		return nil
 	}
 
-	return fmt.Errorf("write failed: %v", err)
+	return fmt.Errorf("%w: %w", ErrWriteFailed, err)
 }
 
 // WrapEncode 包装编码错误。

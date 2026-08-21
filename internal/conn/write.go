@@ -20,8 +20,7 @@ func (c *Conn) WriteDirect(ctx context.Context, data []byte) error {
 		return c.Enqueue(data)
 	}
 	if err := w(ctx, data); err != nil {
-
-		return err
+		return errs.WrapWrite(err)
 	}
 	return nil
 }

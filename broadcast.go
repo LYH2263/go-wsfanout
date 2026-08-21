@@ -110,7 +110,7 @@ func (h *Hub) SendTo(connID string, msg Message) error {
 	err = c.WriteDirect(context.Background(), encoded)
 	if err != nil {
 
-		return fmt.Errorf("sendto: %v", err)
+		return fmt.Errorf("sendto: %w", err)
 	}
 	return nil
 }
