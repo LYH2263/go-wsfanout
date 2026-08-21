@@ -82,15 +82,17 @@ func (l *Logger) Rotate() error {
 }
 
 func (l *Logger) rotateLocked() error {
-
+	// Windows 上若当前句柄仍持有日志文件，Rename 会因文件被占用而失败，
+	// .1 备份也落不了地。先关掉旧句柄再重命名。
+	if l.f != nil {
+		_ = l.f.Sync()
+		_ = l.f.Close()
+		l.f = nil
+	}
 	bak := l.path + ".1"
 	_ = os.Remove(bak)
 	if err := os.Rename(l.path, bak); err != nil && !os.IsNotExist(err) {
 		return errs.WrapAudit(err)
-	}
-	if l.f != nil {
-		_ = l.f.Sync()
-		// 故意不 Close
 	}
 	f, err := os.OpenFile(l.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
