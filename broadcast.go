@@ -17,8 +17,10 @@ func (h *Hub) Broadcast(roomName string, msg Message) error {
 
 // BroadcastContext 支持取消的房间广播。
 func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message) error {
-
-	_ = ctx
+	// 调用方已取消则尽快返回，不做克隆/编码/扇出。
+	if err := ctx.Err(); err != nil {
+		return errs.WrapCanceled(err)
+	}
 	if h.closed.Load() {
 		return ErrClosed
 	}
@@ -43,6 +45,10 @@ func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message
 
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	// 取锁窗口里 ctx 可能已被取消：再校验一次，避免无谓扇出。
+	if err := ctx.Err(); err != nil {
+		return errs.WrapCanceled(err)
+	}
 	if h.closed.Load() {
 		return ErrClosed
 	}
@@ -59,7 +65,7 @@ func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message
 		}
 		targets = append(targets, &hubcore.Target{ID: id, Conn: c})
 	}
-	res := hubcore.Fanout(context.Background(), targets, encoded, nil)
+	res := hubcore.Fanout(ctx, targets, encoded, nil)
 	h.broadcasts.Add(1)
 	h.metrics.IncBroadcasts(1)
 	h.dropped.Add(int64(res.Dropped))
@@ -71,6 +77,10 @@ func (h *Hub) BroadcastContext(ctx context.Context, roomName string, msg Message
 		})
 	}
 	if res.Canceled {
+		// Fanout 短路时已记录原因；无则退回 ErrCanceled。
+		if res.LastWriteErr != nil {
+			return res.LastWriteErr
+		}
 		return errs.WrapCanceled(context.Canceled)
 	}
 	if res.LastWriteErr != nil {

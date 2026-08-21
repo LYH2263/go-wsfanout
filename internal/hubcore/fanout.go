@@ -2,6 +2,7 @@ package hubcore
 
 import (
 	"context"
+	"errors"
 
 	"example.com/wsfanout/internal/conn"
 	"example.com/wsfanout/internal/errs"
@@ -22,13 +23,23 @@ type Result struct {
 	LastWriteErr error
 }
 
-// Fanout 向目标列表投递；checkCancel 在每个目标前调用。
+// Fanout 向目标列表投递；每个目标前检查 ctx 与 checkCancel，取消即短路返回不再扇出。
 func Fanout(ctx context.Context, targets []*Target, data []byte, checkCancel func() error) Result {
 	var res Result
 	for _, t := range targets {
-
-		_ = checkCancel
-		_ = ctx
+		// 每个目标前检查取消：ctx 已取消或 checkCancel 命中即短路。
+		if err := ctx.Err(); err != nil {
+			res.Canceled = true
+			res.LastWriteErr = errs.WrapCanceled(err)
+			return res
+		}
+		if checkCancel != nil {
+			if err := checkCancel(); err != nil {
+				res.Canceled = true
+				res.LastWriteErr = err
+				return res
+			}
+		}
 		if t == nil || t.Conn == nil {
 			continue
 		}
@@ -36,6 +47,12 @@ func Fanout(ctx context.Context, targets []*Target, data []byte, checkCancel fun
 			if err == errs.ErrQueueFull {
 				res.Dropped++
 				continue
+			}
+			// 投递瞬间被取消：归入取消并短路，避免误计写错误。
+			if errors.Is(err, errs.ErrCanceled) {
+				res.Canceled = true
+				res.LastWriteErr = err
+				return res
 			}
 			res.WriteErrors++
 			res.LastWriteErr = err
