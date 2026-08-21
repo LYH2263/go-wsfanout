@@ -111,6 +111,9 @@ func (h *Hub) SendTo(connID string, msg Message) error {
 
 func (h *Hub) encodeLocked(m payload.Message) ([]byte, error) {
 	enc := h.encoder
+	if enc == nil {
+		return nil, ErrNoEncoder
+	}
 
 	b, err := enc.Encode(m)
 	if err != nil {

@@ -52,6 +52,9 @@ func New(opts ...Option) *Hub {
 		o(h)
 	}
 
+	if h.encoder == nil {
+		h.encoder = encode.NewJSONEncoder()
+	}
 	if h.store == nil {
 		h.store = persist.NewMemoryStore()
 	}
