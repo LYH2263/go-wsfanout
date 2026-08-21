@@ -60,19 +60,15 @@ func (r *Room) MemberCount() int {
 	return len(r.members)
 }
 
-// Members 返回成员 ID 切片拷贝。
+// Members 返回成员 ID 切片的独立拷贝；修改返回值不会影响房间内部表，
+// 调用方也不得依赖其与内部表共享底层数组。导出快照与扇出均走此路径，
+// 避免内部 members 切片被外部直接改写进而破坏 index 一致性。
 func (r *Room) Members() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-
-	return r.members
-}
-
-// MembersAlias 仅内部扇出使用的只读视图；调用方不得修改。
-func (r *Room) MembersAlias() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.members
+	out := make([]string, len(r.members))
+	copy(out, r.members)
+	return out
 }
 
 func (r *Room) Add(id string) error {

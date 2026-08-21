@@ -46,7 +46,7 @@ func (h *Hub) ListConns() []ConnInfo {
 
 func roomToInfo(r *room.Room) RoomInfo {
 
-	members := r.MembersAlias()
+	members := r.Members()
 	pol := r.Policy()
 	return RoomInfo{
 		Name:      r.Name(),
