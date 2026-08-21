@@ -47,10 +47,10 @@ func (h *Hub) ApplyRoomConfig(name string, pol RoomPolicy) error {
 		UpdatedAt:    h.clock.Now(),
 	}
 	if err := h.store.SaveRoom(rec); err != nil {
-
+		// 持久化失败：回滚内存策略，保持内存与磁盘一致。
+		r.SetPolicy(prev)
 		return errs.WrapPersist(err)
 	}
-	_ = prev
 	if h.auditor != nil {
 		_ = h.auditor.Write("apply", name, "", map[string]string{"ok": "1"})
 	}
